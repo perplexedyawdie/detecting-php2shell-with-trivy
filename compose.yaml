@@ -1,0 +1,90 @@
+x-scenario: &scenario
+  command: sleep infinity
+  init: true
+
+x-from-base: &from-base
+  base: service:base
+
+services:
+  base:
+    <<: *scenario
+    image: php2shell:base
+    build: scenarios/base
+
+  all-conditions:
+    <<: *scenario
+    image: php2shell:all-conditions
+    build:
+      context: scenarios/all-conditions
+      additional_contexts: *from-base
+
+  # 1. package DB
+  c1-holds:
+    <<: *scenario
+    image: php2shell:c1-holds
+    build: { context: scenarios/c1-package-db, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+  c1-broken-source:
+    <<: *scenario
+    image: php2shell:c1-broken-source
+    build: { context: scenarios/c1-package-db, dockerfile: broken-source.Dockerfile }
+  c1-broken-no-db:
+    <<: *scenario
+    image: php2shell:c1-broken-no-db
+    build: { context: scenarios/c1-package-db, dockerfile: broken-no-db.Dockerfile, additional_contexts: *from-base }
+
+  # 2. distro
+  c2-holds:
+    <<: *scenario
+    image: php2shell:c2-holds
+    build: { context: scenarios/c2-distro, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+  c2-broken:
+    <<: *scenario
+    image: php2shell:c2-broken
+    build: { context: scenarios/c2-distro, dockerfile: broken.Dockerfile, additional_contexts: *from-base }
+
+  # 3. official package
+  c3-holds:
+    <<: *scenario
+    image: php2shell:c3-holds
+    build: { context: scenarios/c3-official, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+  c3-broken:
+    <<: *scenario
+    image: php2shell:c3-broken
+    build: { context: scenarios/c3-official, dockerfile: broken.Dockerfile, additional_contexts: *from-base }
+
+  # 4. advisory for the release
+  c4-holds:
+    <<: *scenario
+    image: php2shell:c4-holds
+    build: { context: scenarios/c4-advisory, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+  c4-broken:
+    <<: *scenario
+    image: php2shell:c4-broken
+    build: { context: scenarios/c4-advisory, dockerfile: broken.Dockerfile }
+
+  # 5. version below the fix
+  c5-holds:
+    <<: *scenario
+    image: php2shell:c5-holds
+    build: { context: scenarios/c5-version, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+  c5-broken:
+    <<: *scenario
+    image: php2shell:c5-broken
+    build: { context: scenarios/c5-version, dockerfile: broken.Dockerfile }
+
+  # 6. CVE in the local DB (the broken side is the stale-db Trivy image below)
+  c6-holds:
+    <<: *scenario
+    image: php2shell:c6-holds
+    build: { context: scenarios/c6-db, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+
+  # 7. scan filters (the broken side is the scan settings)
+  c7-holds:
+    <<: *scenario
+    image: php2shell:c7-holds
+    build: { context: scenarios/c7-filters, dockerfile: holds.Dockerfile, additional_contexts: *from-base }
+
+  stale-db:
+    profiles: [tools]
+    image: php2shell:stale-db
+    build: { context: scenarios/c6-db, dockerfile: stale-db.Dockerfile }
